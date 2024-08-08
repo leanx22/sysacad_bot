@@ -11,3 +11,4 @@ class botData:
     LOGIN_BUTTON_NAME = "loginbutton"
     
     INSCRIPTION_LINK_TEXT = "Inscripción a cursado"
+    INSCRIPTION_PRINT_BUTTON = "Certificado de cursado"

@@ -7,7 +7,6 @@ from webdriver_manager.firefox import GeckoDriverManager
 import os
 import time
 
-from nav import *
 from colors import *
 from data import botData as consts
 from functions import *
