@@ -1,0 +1,8 @@
+#IDE
+.VSCode/
+
+#DEP
+botEnv/
+
+#CACHE
+src/__pycache__
