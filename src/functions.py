@@ -1,10 +1,6 @@
 import sys
-from selenium import webdriver
 
-from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.common.by import By
-from webdriver_manager.firefox import GeckoDriverManager
-
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -15,41 +11,34 @@ import time
 import data
 from colors import *
 
-userid = ""
-password = ""
-
 ###############ENTRY_POINT####################
-def start_camp(user_id, user_password):
-    global userid 
-    userid = user_id
-    global password 
-    password = user_password
+def start_camp(driver, configs):
+    userid = configs.get("sysacad_user_id")
+    password = configs.get("psw")
+    
     os.system("cls")
-    print("Iniciando driver para Firefox...")
-    driver = start_driver()
 
     print("Intentando navegar al login de sysacad...")
     while navigate(driver, data.botData.SYS_LOGIN_LINK) == False:
         tries += 1
         print(tcolors.FAIL+tcolors.BOLD+"("+str(tries)+")"+"No se pudo acceder a la página de login de sysacad."+tcolors.RESET)
-        print("Reintentando en 2 segundos...")
-        time.sleep(2)
+        print("Reintentando...")
+        pause(configs)
 
-    logIn(driver)
+    logIn(driver,configs)
 
-    
-    
     print(tcolors.BOLD+tcolors.OKCYAN+"Intentando ingresar a las inscripciones...")
     click_inscription_link(driver)
     WebDriverWait(driver, 120).until(EC.url_changes(driver.current_url))
-    #while check inscrip page == false
+
+    #?
     while check_inscription_page(driver) == False:
         break
 
 
 ###############FUNCTIONS####################
-def logIn(driver):
-    if fill_login_form(driver) == False:
+def logIn(driver, configs):
+    if fill_login_form(driver,configs) == False:
         print(tcolors.FAIL+tcolors.BOLD+"No se puede encontrar los elementos del formulario para colocar la información. Abortando el proceso.")
         kill(driver,"No se encuentran los elementos necesarios en el DOM.")
 
@@ -57,16 +46,16 @@ def logIn(driver):
         print(tcolors.FAIL+tcolors.BOLD+"No se puede encontrar el botón de inicio de sesión. Abortando el proceso.")
         kill(driver, "No se encuentra el botón en el DOM. No se puede continuar.")
     
-    wait_for_user_menu(driver)
+    wait_for_user_menu(driver,configs)
 
-def wait_for_user_menu(driver):
+def wait_for_user_menu(driver, configs):
     while check_menu_page(driver) == False:
         cause = "Sysacad está detonado" if check_sysacad_error(driver) else "Desconocida/timeOut"
         print(tcolors.FAIL+tcolors.BOLD+"[ERR] No se pudo acceder al menu alumno | CAUSA -> "+cause+" | Reintentando..."+tcolors.RESET)
         time.sleep(1)
         driver.back()
         time.sleep(1)
-        logIn(driver)
+        logIn(driver,configs)
     click_inscription_link(driver)
     wait_for_inscription_page(driver)
 
@@ -83,6 +72,19 @@ def wait_for_inscription_page(driver):
     input("Presione ENTER para cerrar todo (navegador incluido OJO!)...")
     kill(driver, 0)
 
+def pause(config):
+    time = 0;
+    match config.get("aggro_level"):
+        case "1":
+            time = 4
+        case "2":
+            time = 2
+        case "3":
+            time = 0
+        case other:
+            time = 3
+    time.sleep(time)
+
 ###############AUTOMATED_USER_ACTIONS####################
 def navigate(driver, url):
     try:
@@ -91,16 +93,7 @@ def navigate(driver, url):
     except:
         return False
 
-def start_driver():    
-    try:
-        driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()))
-        return driver
-    except:
-        print(tcolors.FAIL+tcolors.BOLD+"No se pudo iniciar el driver. No se puede continuar.")
-        input()
-        sys.exit(1)
-
-def fill_login_form(driver):
+def fill_login_form(driver,configs):
     print(tcolors.OKCYAN+"Autocompletando formulario...")
     time.sleep(1)
     try:        
@@ -110,17 +103,18 @@ def fill_login_form(driver):
         user_id_element.clear()
         pass_element.clear()
         
-        user_id_element.send_keys(userid)
-        pass_element.send_keys(password)
+        user_id_element.send_keys(configs.get("sysacad_user_id"))
+        pass_element.send_keys(configs.get("psw"))
         return True
     except:
         return False
     
 def click_login_button(driver):
     print(tcolors.OKCYAN+"Intentando iniciar sesión...")
+    current_url = driver.current_url
     try:
         driver.find_element(By.NAME, data.botData.LOGIN_BUTTON_NAME).click()
-        WebDriverWait(driver, 120).until(EC.url_changes(driver.current_url))
+        WebDriverWait(driver, 120).until(EC.url_changes(current_url))
         return True
     except:
         return False

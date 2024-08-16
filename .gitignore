@@ -6,3 +6,6 @@ botEnv/
 
 #CACHE
 src/__pycache__
+
+#OTHER
+src/config.txt

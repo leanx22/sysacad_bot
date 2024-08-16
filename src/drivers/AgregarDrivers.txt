@@ -1,0 +1,6 @@
+Los drivers permiten automatizar el navegador, cada navegador TIENE SU CORRESPONDIENTE DRIVER.
+
+Para que funcionen, tanto la versión del driver como la del navegador, deben ser compatibles.
+Si estas teniendo problemas para que el bot funcione con tu navegador, puede ser a causa de que este se actualizó y el driver integrado en el bot ya no es compatible. Si ese fuera el caso, sólo tenés que buscar el driver actualizado y reemplazarlo en esta carpeta.
+
+Si estás utilizando un navegador raro, y su driver no está en esta carpeta sólo debés descargarlo, colocarlo acá y después poner el nombre del archivo en src/configs.txt

@@ -4,47 +4,46 @@ from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.common.by import By
 from webdriver_manager.firefox import GeckoDriverManager
 
-import os
-import time
-
+from os import system
+import sys
+from files import *
 from colors import *
-from data import botData as consts
-from functions import *
+from prints import *
+from configs import print_config_menu
+from driver import get_driver
+from functions import start_camp
 
-exit = False
-user_id = ""
-user_password = ""
+exit_menu = False
+print("Cargando configuraciones del usuario...")
+configs = get_configs("./src/config.txt");
+system("cls")
+print_welcome_message(2)
 
-while exit == False:
-    os.system("cls")
+while exit_menu == False:
+    system("cls")
+    print_menu()
 
-    print(tcolors.OKCYAN+tcolors.BOLD+"BOT PARA CAMPEAR EL SYSACAD [LEAN] - [V"+str(consts.BOT_VERSION)+"]"+tcolors.RESET)
-    time.sleep(1)
-
-    print(tcolors.BOLD+tcolors.OKCYAN+"MENU PRINCIPAL: ")
-    print("Usuario actual: "+user_id+"\n"+tcolors.RESET)
-    print(tcolors.OKCYAN+"1. Configurar inicio de sesión.\n"+
-        "2. Comenzar a campear.\n"+
-        "3. Salir.\n")
-    option = input("Seleccion: ")
-    match option:        
-        case "1":
-            os.system("cls")            
-            user_id = input("Ingresá tu legajo: ")
-            user_password = input("Ingresá tu contraseña de sysacad: ")
-            continue
-        case "2":
-            start_camp(user_id, user_password)
-            break
-        case "3":
-            os.system("cls")
-            print(tcolors.OKCYAN+"Saliendo del programa...")
-            exit = True
-            break
+    selected_option = get_user_input_option(3)
+    while selected_option == -1:
+        system("cls")
+        print_menu()
+        selected_option = get_user_input_option(3,get_formated_error_string("Reingrese selección válida: "))
+    
+    match selected_option:
+        case 1:
+            configs = print_config_menu(configs,True)
+        case 2:
+            if(configs.get("psw") == None or configs.get("sysacad_user_id") == None):
+                print_error("Debe configurarse los datos de ingreso antes de iniciar la tarea.")
+            else:
+                driver = get_driver(configs.get("navegador"))
+                start_camp(driver, configs)
+        case 3:
+            system("cls")
+            print(tcolors.OKCYAN+"Chau Chau.")
+            exit_menu = True
         case other:
-            print(tcolors.FAIL+"Opción inválida.")
-            input("Presioná ENTER para continuar...")
-            os.system("cls")
-
-
-sys.exit(0)
+            #it should never reach here btw
+            #but just in case, if that happens, it will print the menu again so np.
+            break
+exit(0)
