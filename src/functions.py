@@ -27,24 +27,15 @@ def start_camp(driver, configs):
 
     logIn(driver,configs)
 
-    print(tcolors.BOLD+tcolors.OKCYAN+"Intentando ingresar a las inscripciones...")
-    click_inscription_link(driver)
-    WebDriverWait(driver, 120).until(EC.url_changes(driver.current_url))
-
-    #?
-    while check_inscription_page(driver) == False:
-        break
-
-
 ###############FUNCTIONS####################
 def logIn(driver, configs):
     if fill_login_form(driver,configs) == False:
         print(tcolors.FAIL+tcolors.BOLD+"No se puede encontrar los elementos del formulario para colocar la información. Abortando el proceso.")
-        kill(driver,"No se encuentran los elementos necesarios en el DOM.")
+        kill(driver)
 
     if click_login_button(driver) == False:
         print(tcolors.FAIL+tcolors.BOLD+"No se puede encontrar el botón de inicio de sesión. Abortando el proceso.")
-        kill(driver, "No se encuentra el botón en el DOM. No se puede continuar.")
+        kill(driver)
     
     wait_for_user_menu(driver,configs)
 
@@ -70,7 +61,7 @@ def wait_for_inscription_page(driver):
     print(tcolors.BOLD+tcolors.OKGREEN+"YA ESTAS EN LA PAGINA DE INSCRIPCIONES...")
     playsound("./src/assets/completed.mp3")
     input("Presione ENTER para cerrar todo (navegador incluido OJO!)...")
-    kill(driver, 0)
+    kill(driver)
 
 def pause(config):
     time = 0;
@@ -128,13 +119,16 @@ def click_inscription_link(driver):
         if check_inscription_page(driver) == False:
             if check_login_page(driver):
                 logIn(driver)
+            if check_inscription_closed(driver):
+                print(tcolors.FAIL+tcolors.BOLD+"Las inscripciones aún están cerradas. Esperá unos minutos y volvé a intentar. Saliendo...")
+                kill(driver)
             time.sleep(2)
             driver.back()
             time.sleep(1)
             click_inscription_link(driver)
     except:
-        print(tcolors.FAIL+tcolors.BOLD+"No se encuentra el boton de inscripciones. No se puede continuar.")
-        kill(driver, "No se encuentra el elemento en el DOM.")
+        print(tcolors.FAIL+tcolors.BOLD+"No se encuentra el boton de inscripciones. No se puede continuar. Saliendo...")
+        kill(driver)
 
 ###############PAGE_CHECKS####################
 def check_login_page(driver):
@@ -166,7 +160,12 @@ def check_sysacad_error(driver):
     except:
         return False
 
+def check_inscription_closed(driver):
+    err_text = driver.find_element(By.CLASS_NAME, data.botData.SYS_ERR_CLASS).text
+    if(err_text == data.botData.SYS_CLSD_INSC_TEXT):
+        return True
+    return False
 ###########OTHERS####################
-def kill(driver, code):
-    input("Presioná ENTER para finalizar...")
-    sys.exit(code)
+def kill(driver):
+    driver.quit()
+    sys.exit(0)

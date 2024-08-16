@@ -36,6 +36,7 @@ while exit_menu == False:
             if(configs.get("psw") == None or configs.get("sysacad_user_id") == None):
                 print_error("Debe configurarse los datos de ingreso antes de iniciar la tarea.")
             else:
+                system("cls")
                 driver = get_driver(configs.get("navegador"))
                 start_camp(driver, configs)
         case 3:
