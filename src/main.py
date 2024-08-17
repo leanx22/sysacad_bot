@@ -1,40 +1,57 @@
 from os import system
+
+from playsound import playsound
+
 from files import *
 from colors import *
-from prints import *
+from IO import *
 from configs import print_config_menu
 from driver import get_driver
-from functions import start_camp
+from functions import start_task
 
 exit_menu = False
-print("Cargando configuraciones del usuario...")
 configs = get_configs("./src/config.txt");
-system("cls")
 print_welcome_message(2)
 
 while exit_menu == False:
-    system("cls")
     print_menu()
+    selected_option = get_selected_menu_option_from_user(3)
 
-    selected_option = get_user_input_option(3)
-    while selected_option == -1:
-        system("cls")
-        print_menu()
-        selected_option = get_user_input_option(3,get_formated_error_string("Reingrese selección válida: "))
-    
     match selected_option:
         case 1:
             configs = print_config_menu(configs,True)
         case 2:
             if(configs.get("psw") == None or configs.get("sysacad_user_id") == None):
                 print_error("Debe configurarse los datos de ingreso antes de iniciar la tarea.")
-            else:
-                system("cls")
+                continue
+
+            system("cls")
+            try:
                 driver = get_driver(configs.get("navegador"))
-                start_camp(driver, configs)
+            except:
+                print_error("Error al iniciar driver y/o navegador ["+configs.get("navegador")+"]. Verifique que el driver correcto esté seleccionado y el navegador esté instalado.",True,True)
+                continue
+
+            try:
+                if start_task(driver, configs):
+                    #success sound
+                    print_success("[LISTO]",True, False)
+                    playsound("./src/assets/success_song.mp3")
+                    print_warn("AL PRESIONAR CONTINUAR EL NAVEGADOR VA A CERRARSE, ASEGURATE DE TERMINAR TU INSCRIPCION ANTES DE CONTINUAR",True,True)
+            except ValueError as VE:
+                playsound("./src/assets/error_sound.mp3")
+                print_error("Ocurrió un error inesperado durante la ejecución: ("+str(VE)+".) | Abortando ejecución.",True,True)
+            except TimeoutError as TE:
+                playsound("./src/assets/error_sound.mp3")
+                print_error("Se pasó el límite de tiempo: ("+str(TE)+".) | Abortando ejecución.",True,True)
+            except Exception as E:
+                playsound("./src/assets/error_sound.mp3")
+                print_error("Ocurrió un error: ("+str(E)+".) | Abortando ejecución.",True,True)
+            finally:
+                driver.quit()
         case 3:
             system("cls")
-            print(tcolors.OKCYAN+"Chau Chau.")
+            print(tcolors.OKCYAN+"Cerrando...")
             exit_menu = True
         case other:
             #it should never reach here btw

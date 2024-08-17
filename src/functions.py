@@ -1,171 +1,64 @@
-import sys
-
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
-from playsound import playsound
-
 import os
 import time
 import data
-from colors import *
 
-###############ENTRY_POINT####################
-def start_camp(driver, configs):
+from colors import *
+from pageValidators import *
+from browserActions import *
+from IO import *
+
+def start_task(driver, configs):
     userid = configs.get("sysacad_user_id")
     password = configs.get("psw")
     
     os.system("cls")
-
-    print("Intentando navegar al login de sysacad...")
-    while navigate(driver, data.botData.SYS_LOGIN_LINK) == False:
-        tries += 1
-        print(tcolors.FAIL+tcolors.BOLD+"("+str(tries)+")"+"No se pudo acceder a la página de login de sysacad."+tcolors.RESET)
-        print("Reintentando...")
-        pause(configs)
-
-    logIn(driver,configs)
-
-###############FUNCTIONS####################
-def logIn(driver, configs):
-    if fill_login_form(driver,configs) == False:
-        print(tcolors.FAIL+tcolors.BOLD+"No se puede encontrar los elementos del formulario para colocar la información. Abortando el proceso.")
-        kill(driver)
-
-    if click_login_button(driver) == False:
-        print(tcolors.FAIL+tcolors.BOLD+"No se puede encontrar el botón de inicio de sesión. Abortando el proceso.")
-        kill(driver)
+    print_message("- Navegando a la página de login.")
     
-    wait_for_user_menu(driver,configs)
+    login_nav_tries = 0
+    while navigate(driver, data.botData.SYS_LOGIN_LINK) == False:
+        login_nav_tries += 1
+        print_error("["+str(login_nav_tries)+"]"+" >>No se pudo acceder | Reintentando<<",False,False)
 
-def wait_for_user_menu(driver, configs):
-    while check_menu_page(driver) == False:
-        cause = "Sysacad está detonado" if check_sysacad_error(driver) else "Desconocida/timeOut"
-        print(tcolors.FAIL+tcolors.BOLD+"[ERR] No se pudo acceder al menu alumno | CAUSA -> "+cause+" | Reintentando..."+tcolors.RESET)
-        time.sleep(1)
+    login_url = driver.current_url
+    print_message("- Intentando acceder.")
+    logIn(driver,configs)    
+    wait_for_url_change(driver, login_url)
+    
+    menu_nav_tries = 0
+    while is_student_menu(driver, data.botData.INSCRIPTION_LINK_TEXT) == False:
+        menu_nav_tries+=1
+        print_error("["+str(menu_nav_tries)+"]"+" >>No se pudo acceder al menu alumno | Reintentando<<",False,False)
         driver.back()
         time.sleep(1)
         logIn(driver,configs)
-    click_inscription_link(driver)
-    wait_for_inscription_page(driver)
+        wait_for_url_change(driver, login_url)
+        if is_student_menu(driver, data.botData.INSCRIPTION_LINK_TEXT) == True:
+            break
+    
+    print_message("- Intentando acceder a las inscripciones.")
+    student_menu_url = driver.current_url
+    click_inscription_link(driver, data.botData.INSCRIPTION_LINK_TEXT)
+    wait_for_url_change(driver, student_menu_url)
 
-def wait_for_inscription_page(driver):
-    while check_inscription_page(driver) == False:
-        cause = "Sysacad está detonado" if check_sysacad_error(driver) else "Desconocida/timeOut"
-        print(tcolors.FAIL+tcolors.BOLD+"[ERR] No se pudo acceder a las inscripciones | CAUSA -> "+cause+" | Reintentando..."+tcolors.RESET)
-        time.sleep(1)
+    #validate session expiration
+
+    inscription_nav_tries = 0
+    while is_inscription_page(driver, data.botData.INSCRIPTION_PRINT_BUTTON) == False:
+        if are_inscriptions_closed(driver, data.botData.SYS_ERR_CLASS, data.botData.SYS_CLSD_INSC_TEXT) == True:
+            raise Exception("Las inscripciones aún no están disponibles")
+        if is_login_page(driver, data.botData.PSW_TEXTBOX_NAME) == True:
+            raise Exception("La sesión de sysacad expiró, reiniciá el procedimiento")
+        inscription_nav_tries+=1
+        print_error("["+str(inscription_nav_tries)+"]"+" >>No se pudo acceder a la página de inscripciones | Reintentando<<",False,False)
         driver.back()
         time.sleep(1)
-        click_inscription_link(driver)
-    print(tcolors.BOLD+tcolors.OKGREEN+"YA ESTAS EN LA PAGINA DE INSCRIPCIONES...")
-    playsound("./src/assets/completed.mp3")
-    input("Presione ENTER para cerrar todo (navegador incluido OJO!)...")
-    kill(driver)
+        click_inscription_link(driver, data.botData.INSCRIPTION_LINK_TEXT)
+        wait_for_url_change(driver, student_menu_url)
+        if is_inscription_page(driver, data.botData.INSCRIPTION_PRINT_BUTTON) == True:
+            break
 
-def pause(config):
-    time = 0;
-    match config.get("aggro_level"):
-        case "1":
-            time = 4
-        case "2":
-            time = 2
-        case "3":
-            time = 0
-        case other:
-            time = 3
-    time.sleep(time)
+    return True
 
-###############AUTOMATED_USER_ACTIONS####################
-def navigate(driver, url):
-    try:
-        driver.get(url)
-        return True
-    except:
-        return False
-
-def fill_login_form(driver,configs):
-    print(tcolors.OKCYAN+"Autocompletando formulario...")
-    time.sleep(1)
-    try:        
-        user_id_element = driver.find_element(By.NAME, data.botData.LEG_TEXTBOX_NAME)
-        pass_element = driver.find_element(By.NAME, data.botData.PASS_TEXTBOX_NAME)
-        
-        user_id_element.clear()
-        pass_element.clear()
-        
-        user_id_element.send_keys(configs.get("sysacad_user_id"))
-        pass_element.send_keys(configs.get("psw"))
-        return True
-    except:
-        return False
-    
-def click_login_button(driver):
-    print(tcolors.OKCYAN+"Intentando iniciar sesión...")
-    current_url = driver.current_url
-    try:
-        driver.find_element(By.NAME, data.botData.LOGIN_BUTTON_NAME).click()
-        WebDriverWait(driver, 120).until(EC.url_changes(current_url))
-        return True
-    except:
-        return False
-
-def click_inscription_link(driver):
-    print(tcolors.OKCYAN+"Intentando ingresar a las inscripciones...")
-    try:
-        current_url = driver.current_url
-        driver.find_element(By.LINK_TEXT, data.botData.INSCRIPTION_LINK_TEXT).click()
-        WebDriverWait(driver, 120).until(EC.url_changes(current_url))
-        if check_inscription_page(driver) == False:
-            if check_login_page(driver):
-                logIn(driver)
-            if check_inscription_closed(driver):
-                print(tcolors.FAIL+tcolors.BOLD+"Las inscripciones aún están cerradas. Esperá unos minutos y volvé a intentar. Saliendo...")
-                kill(driver)
-            time.sleep(2)
-            driver.back()
-            time.sleep(1)
-            click_inscription_link(driver)
-    except:
-        print(tcolors.FAIL+tcolors.BOLD+"No se encuentra el boton de inscripciones. No se puede continuar. Saliendo...")
-        kill(driver)
-
-###############PAGE_CHECKS####################
-def check_login_page(driver):
-    try:        
-        user_id_element = driver.find_element(By.NAME, data.botData.LEG_TEXTBOX_NAME)
-        pass_element = driver.find_element(By.NAME, data.botData.PASS_TEXTBOX_NAME)
-        return True
-    except:
-        return False
-
-def check_menu_page(driver):
-    try:
-        driver.find_element(By.LINK_TEXT, data.botData.INSCRIPTION_LINK_TEXT)
-        return True
-    except:
-        return False
-
-def check_inscription_page(driver):
-    try:
-        driver.find_element(By.LINK_TEXT, data.botData.INSCRIPTION_PRINT_BUTTON)
-        return True
-    except:
-        return False
-
-def check_sysacad_error(driver):
-    try:
-        driver.find_element(By.CLASS_NAME, data.botData.SYS_ERR_CLASS)
-        return True
-    except:
-        return False
-
-def check_inscription_closed(driver):
-    err_text = driver.find_element(By.CLASS_NAME, data.botData.SYS_ERR_CLASS).text
-    if(err_text == data.botData.SYS_CLSD_INSC_TEXT):
-        return True
-    return False
-###########OTHERS####################
-def kill(driver):
-    driver.quit()
-    sys.exit(0)
+def logIn(driver, configs):
+    if fill_login_form(driver,configs.get("sysacad_user_id"),configs.get("psw"),data.botData.LEG_TEXTBOX_NAME, data.botData.PASS_TEXTBOX_NAME) == False or click_login_button(driver, data.botData.LOGIN_BUTTON_NAME) == False:
+        raise ValueError("El elemento necesario no se encuentra o es nulo")

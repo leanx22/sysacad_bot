@@ -1,4 +1,5 @@
 def get_configs(file_path):
+    print("Cargando archivo de configuraciones...")
     configs = {}
     try:
         with open(file_path, 'r') as file:
@@ -10,7 +11,7 @@ def get_configs(file_path):
                         configs[key.strip()] = value.strip()
         return configs
     except:
-        print("El archivo no existe, creando uno nuevo...")
+        print("Archivo no encontrado. Creando nuevo...")
         with open(file_path, 'w') as file:
             file.write("aggro_level=2;\n"
             "navegador=chrome;\n")
